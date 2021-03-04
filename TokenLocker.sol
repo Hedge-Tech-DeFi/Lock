@@ -20,9 +20,6 @@ contract TokenLocker {
     bool retrieved; // false if lock already retreieved
   }
 
-  // Mapping of token address to emergency unlock boolean
-  mapping(address => bool) public emergencyUnlocks;
-
   // Mapping of user to their locks
   mapping(address => mapping(uint256 => TokenLock)) public locks;
 
@@ -73,10 +70,6 @@ contract TokenLocker {
   function getNumLocks() external view returns (uint256) {
     return numLocks[msg.sender];
   }
-  
-  function getEmergencyUnlock(address tokenAddress) external view returns (bool) {
-    return emergencyUnlocks[tokenAddress];
-  }
 
   function unlockTokens(uint256 lockId) external returns (bool) {
     // Make sure lock exists
@@ -84,23 +77,12 @@ contract TokenLocker {
     // Make sure lock is still locked
     require(locks[msg.sender][lockId].retrieved == false, "Lock was already unlocked");
     // Make sure tokens can be unlocked
-    require((locks[msg.sender][lockId].unlockDate <= block.timestamp)
-      || (emergencyUnlocks[locks[msg.sender][lockId].tokenAddress]), "Tokens can't be unlocked yet");
+    require(locks[msg.sender][lockId].unlockDate <= block.timestamp, "Tokens can't be unlocked yet");
     
     ERC20 token = ERC20(locks[msg.sender][lockId].tokenAddress);
     token.transfer(msg.sender, locks[msg.sender][lockId].amount);
     locks[msg.sender][lockId].retrieved = true;
 
-    return true;
-  }
-
-  function emergencyUnlock(address tokenAddress) external onlyOwner returns (bool) {
-    emergencyUnlocks[tokenAddress] = true;
-    return true;
-  }
-  
-  function emergencyLock(address tokenAddress) external onlyOwner returns (bool) {
-    emergencyUnlocks[tokenAddress] = false;
     return true;
   }
 
